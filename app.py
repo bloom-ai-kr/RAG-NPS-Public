@@ -1,4 +1,6 @@
 from pathlib import Path
+# step6-2) API Key 입력
+import os
 
 import streamlit as st
 
@@ -42,6 +44,12 @@ def save_uploaded_file(uploaded_file):
 
 def render_sidebar():
     with st.sidebar:
+        # step6-2) API Key 입력
+        api_key_input = st.text_input("OpenAI API Key", type="password")
+        if api_key_input:
+            st.session_state.openai_api_key = api_key_input
+            os.environ["OPENAI_API_KEY"] = api_key_input
+
         # step5-1) 한글/엑셀 파일 업로드 확장
         uploaded_files = st.file_uploader(
             "파일 업로드",
@@ -100,7 +108,6 @@ def render_chat():
     # answer = response.content
 
     # st.session_state.messages.append({"role": "assistant", "content": answer})
-
     
     # step3-3) Agentic RAG
     agent = create_agent(model="gpt-5-mini", tools=tools)
@@ -124,6 +131,10 @@ if "uploaded_files_meta" not in st.session_state:
     st.session_state.uploaded_files_meta = []
 if "vector_store_ready" not in st.session_state:
     st.session_state.vector_store_ready = False
+if "openai_api_key" not in st.session_state:
+    st.session_state.openai_api_key = ""
+if st.session_state.openai_api_key:
+    os.environ["OPENAI_API_KEY"] = st.session_state.openai_api_key
 
 render_sidebar()
 render_chat()
