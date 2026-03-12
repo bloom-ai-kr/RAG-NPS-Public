@@ -24,7 +24,15 @@ load_dotenv()
 @tool
 def rag_tool(query: str):
     """
-    국민연금 2025년 9월 운용 관련 데이터 조회 시 사용
+    2025년 국민연금기금의 운용수익률 및 자산 포트폴리오 성과 데이터를 검색하는 도구입니다.
+    사용자가 다음과 같은 정보를 질문할 때 이 도구를 호출하세요:
+
+    1. 기금 전체 수익률 및 규모: 2025년 국민연금 총 수익률, 기금 평가액 등
+    2. 자산군별 세부 성과: 국내주식, 해외주식, 국내채권, 해외채권, 대체투자 등 각 자산군의 수익률, 비중, 평가액 현황
+    3. 성과 배경 및 시장 요인: 인공지능(AI) 및 반도체 강세, 정부 정책, 국내외 기준금리 인하 등 수익률 변동에 영향을 미친 원인
+    4. 과거 평균 수익률: 3년, 5년, 설립 이후 장기 평균 수익률 비교 분석
+
+    '국민연금', '운용수익률', '기금 평가액', '자산 배분', '국내외 주식/채권 수익률' 등의 키워드가 포함된 질문에 필수적으로 사용해야 합니다.
     """
     retriever = get_retriever()
     docs = retriever.invoke(query)
@@ -87,6 +95,41 @@ def render_sidebar():
             st.session_state.messages = []
             st.rerun()
 
+# step7-4)
+@st.cache_resource(show_spinner=False)
+def get_agent():
+    return create_agent(
+        model="gpt-5-mini", 
+        tools=tools,
+        system_prompt = """
+            당신은 국민연금 기금 관련 질문에 답변하는 전문 어시스턴트입니다.
+
+            규칙:
+            1. 국민연금의 수익률, 평가액, 자산배분, 자산군별 성과 질문이면 rag_tool을 사용하세요.
+            2. rag_tool이 반환한 문맥을 근거로만 답변하세요.
+            3. 문맥에 없는 내용은 추측하지 말고 모른다고 답하세요.
+            4. 수치가 있으면 가능한 한 구체적으로 설명하세요.
+        """
+    )
+
+# step7-3)
+def stream_answer(history):
+    agent = get_agent()
+
+    for token, metadata in agent.stream(
+        {"messages": history},
+        stream_mode="messages",
+    ):
+        if metadata.get("langgraph_node") != "model":
+            continue
+
+        text = getattr(token, "text", None)
+        if not text:
+            content = getattr(token, "content", "")
+            text = content if isinstance(content, str) else ""
+
+        if text:
+            yield text
 
 def render_chat():
     st.title("NPS X RAG")
@@ -99,6 +142,10 @@ def render_chat():
     if not query:
         return
 
+    # step7-1)
+    with st.chat_message("user"):
+        st.write(query)
+
     st.session_state.messages.append({"role": "user", "content": query})
 
     # # step1-2) 모델 객체 생성 및 Invoke()
@@ -110,14 +157,18 @@ def render_chat():
     # st.session_state.messages.append({"role": "assistant", "content": answer})
     
     # step3-3) Agentic RAG
-    agent = create_agent(model="gpt-5-mini", tools=tools)
+    # agent = create_agent(model="gpt-5-mini", tools=tools)
 
     # step6-1) 과거 대화 맥락 주입
     history = st.session_state.messages.copy()
-    history.append({"role": "user", "content": query})
+    # history.append({"role": "user", "content": query})
 
-    response = agent.invoke({"messages": history})
-    answer = response['messages'][-1].content
+    # response = agent.invoke({"messages": history})
+    # answer = response['messages'][-1].content
+
+    # step7-2)
+    with st.chat_message("assistant"):
+        answer = st.write_stream(stream_answer(history), cursor="▌")
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
     st.rerun()

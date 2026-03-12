@@ -46,7 +46,7 @@ def build_vector_store(file_paths: list[str]) -> str:
     recursive_docs = text_splitter.split_documents(docs)
 
     # Embed
-    underlying_embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    underlying_embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
     store = LocalFileStore(CACHE_PATH)
     cached_embedder = CacheBackedEmbeddings.from_bytes_store(
         underlying_embeddings,
@@ -70,7 +70,7 @@ def build_vector_store(file_paths: list[str]) -> str:
 
 # step3-2) Agentic RAG
 def load_vector_store():
-    underlying_embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    underlying_embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
     store = LocalFileStore(CACHE_PATH)
     cached_embedder = CacheBackedEmbeddings.from_bytes_store(
         underlying_embeddings,
