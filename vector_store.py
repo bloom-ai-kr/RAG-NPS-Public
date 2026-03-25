@@ -1,5 +1,3 @@
-from pathlib import Path
-
 # step2-1) Vector Store 구축
 from langchain_community.document_loaders import PDFPlumberLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -9,6 +7,7 @@ from langchain_chroma import Chroma
 from langchain_classic.storage import LocalFileStore
 
 # step4-5) 한글/엑셀 파일 로더 분기
+from pathlib import Path
 from langchain_community.document_loaders import UnstructuredExcelLoader
 from langchain_hwp_hwpx import HwpHwpxLoader
 
