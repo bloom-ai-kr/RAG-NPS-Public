@@ -1,5 +1,5 @@
 from pathlib import Path
-# step6-2) API Key 입력
+# step8-1) API Key 입력
 import os
 
 import streamlit as st
@@ -13,14 +13,19 @@ from dotenv import load_dotenv
 # step2-3) Vector Store 구축
 from vector_store import build_vector_store
 
-# step3-3) Agentic RAG
+# step3-3) DB import 및 tool 작성
 from langchain.tools import tool
 from vector_store import get_retriever
 from langchain.agents import create_agent
 
 # step1-1) .env 파일의 내용을 환경 변수로 로드
-load_dotenv()
+# step8-2) API Key 입력
+# load_dotenv()
 
+# # step1-2) 모델 객체 생성 및 Invoke()
+# llm = init_chat_model("gpt-5.4-nano")
+
+# # step3-3) DB import 및 tool 작성
 @tool
 def rag_tool(query: str):
     """
@@ -40,7 +45,8 @@ def rag_tool(query: str):
 
     return "\n\n".join([doc.page_content for doc in docs])
 
-tools = [rag_tool]
+# step3-3) Agentic RAG
+# agent = create_agent(model="gpt-5.4-mini", tools=tools)
 
 # step2-4) Vector Store 구축
 def save_uploaded_file(uploaded_file):
@@ -52,13 +58,13 @@ def save_uploaded_file(uploaded_file):
 
 def render_sidebar():
     with st.sidebar:
-        # step6-2) API Key 입력
+        # step8-3) API Key 입력
         api_key_input = st.text_input("OpenAI API Key", type="password")
         if api_key_input:
             st.session_state.openai_api_key = api_key_input
             os.environ["OPENAI_API_KEY"] = api_key_input
 
-        # step5-1) 한글/엑셀 파일 업로드 확장
+        # step4-1) 한글/엑셀 파일 업로드 확장
         uploaded_files = st.file_uploader(
             "파일 업로드",
             type=["pdf", "hwp", "hwpx", "xlsx"],
@@ -82,7 +88,7 @@ def render_sidebar():
 
         # step2-3) Vector Store 구축
         if uploaded_files and st.button("벡터스토어 생성"):
-            # step5-2) 업로드한 여러 파일을 한번에 벡터스토어로 만들기
+            # step4-2) 업로드한 여러 파일을 한번에 벡터스토어로 만들기
             file_paths = []
             for uploaded_file in uploaded_files:
                 file_paths.append(save_uploaded_file(uploaded_file))
@@ -95,12 +101,12 @@ def render_sidebar():
             st.session_state.messages = []
             st.rerun()
 
-# step7-4)
+# step7-2)
 @st.cache_resource(show_spinner=False)
 def get_agent():
     return create_agent(
-        model="gpt-5-mini", 
-        tools=tools,
+        model="gpt-5.4-mini", 
+        tools = [rag_tool],
         system_prompt = """
             당신은 국민연금 기금 관련 질문에 답변하는 전문 어시스턴트입니다.
 
@@ -112,7 +118,7 @@ def get_agent():
         """
     )
 
-# step7-3)
+# step9-2) Stream Answer
 def stream_answer(history):
     agent = get_agent()
 
@@ -149,24 +155,28 @@ def render_chat():
     st.session_state.messages.append({"role": "user", "content": query})
 
     # # step1-2) 모델 객체 생성 및 Invoke()
-    # llm = init_chat_model("gpt-5-nano")
-
     # response = llm.invoke(query)
     # answer = response.content
 
-    # st.session_state.messages.append({"role": "assistant", "content": answer})
-    
-    # step3-3) Agentic RAG
-    # agent = create_agent(model="gpt-5-mini", tools=tools)
+    # # step3-4) agent 답변 생성
+    # response = agent.invoke(
+    #     {"messages" : [{"role": "user", "content": query}]}
+    # )
+    # answer = response['messages'][-1].content
 
-    # step6-1) 과거 대화 맥락 주입
+    # step5-1) 과거 대화 맥락 주입
+    # st.session_state.messages.append({"role": "assistant", "content": answer})
     history = st.session_state.messages.copy()
     # history.append({"role": "user", "content": query})
+
+    # # step7-3)
+    # agent = get_agent()
+
 
     # response = agent.invoke({"messages": history})
     # answer = response['messages'][-1].content
 
-    # step7-2)
+    # step9-1) Stream Answer
     with st.chat_message("assistant"):
         answer = st.write_stream(stream_answer(history), cursor="▌")
 

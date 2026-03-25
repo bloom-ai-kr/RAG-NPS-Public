@@ -2,20 +2,22 @@ from pathlib import Path
 
 # step2-1) Vector Store 구축
 from langchain_community.document_loaders import PDFPlumberLoader
-from langchain_community.document_loaders import UnstructuredExcelLoader
-from langchain_hwp_hwpx import HwpHwpxLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_classic.embeddings import CacheBackedEmbeddings
 from langchain_chroma import Chroma
 from langchain_classic.storage import LocalFileStore
 
+# step4-5) 한글/엑셀 파일 로더 분기
+from langchain_community.document_loaders import UnstructuredExcelLoader
+from langchain_hwp_hwpx import HwpHwpxLoader
+
 # step2-2) Vector Store 구축
 CHROMA_PATH = "./chroma_db"
 CACHE_PATH = "./cache"
 COLLECTION_NAME = "rag_collection"
 
-# step5-4) 한글/엑셀 파일 로더 분기
+# step4-4) 한글/엑셀 파일 로더 분기
 def load_documents(file_path: str):
     extension = Path(file_path).suffix.lower()
 
@@ -30,7 +32,7 @@ def load_documents(file_path: str):
 
     return loader.load()
 
-# step5-3) 여러 파일 문서를 하나로 합치기
+# step4-3) 여러 파일 문서를 하나로 합치기
 def build_vector_store(file_paths: list[str]) -> str:
     docs = []
     for file_path in file_paths:
@@ -68,7 +70,7 @@ def build_vector_store(file_paths: list[str]) -> str:
     return "벡터스토어 생성 완료"
 
 
-# step3-2) Agentic RAG
+# step3-1) Agentic RAG
 def load_vector_store():
     underlying_embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
     store = LocalFileStore(CACHE_PATH)
@@ -86,8 +88,8 @@ def load_vector_store():
     )
     return db
 
-# step3-1) Agentic RAG
-def get_retriever(k: int = 3):
+# step3-2) Agentic RAG
+def get_retriever(k: int = 2):
     db = load_vector_store()
     retriever = db.as_retriever(search_kwargs={"k": k})
     return retriever
